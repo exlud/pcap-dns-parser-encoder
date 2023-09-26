@@ -106,9 +106,8 @@ err1:
 //
 // output in string:
 //         .a.fi;6;I;.bc.fi;4;I;
-// postprocess by awk: (not here)
-//          a.fi;AAAA;IN;
-//          bc.fi;A;IN;
+// need further postprocess by script: (not here)
+//          a.fi AAAA bc.fi A
 //
 // Note:
 // not support message compression defined in RFC1035 section 4.1.4

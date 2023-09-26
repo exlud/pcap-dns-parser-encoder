@@ -1,5 +1,7 @@
 # pcap-dns-parser-encoder
-Parse offline pcap file, extract DNS query in a custom format
+Parse offline pcap file, extract DNS query in a custom encode format
+
+Then use the post-process script to "decode", and extract timestamp for GNU octave
 
 # example
 ```shell
@@ -7,7 +9,7 @@ make
 ./parser -f sample.pcap -o dns.txt
 source post-process.sh dns.txt
 ```
-one segment from the output file
+one fragment in the output file
 ```code
 1695634014.531325
 www.google.com A
