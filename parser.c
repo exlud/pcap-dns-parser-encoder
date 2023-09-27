@@ -106,7 +106,7 @@ err1:
 //
 // output in string:
 //         .a.fi;6;I;.bc.fi;4;I;
-// need further postprocess by script: (not here)
+// need further postprocess by script: (in scripts/ folder)
 //          a.fi AAAA bc.fi A
 //
 // Note:

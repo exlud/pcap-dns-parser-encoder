@@ -1,7 +1,12 @@
 # pcap-dns-parser-encoder
 Parse offline pcap file, extract DNS query in a custom encode format
-
 Then use the post-process script to "decode", and extract timestamp for GNU octave
+
+# dependency
+libpcap-dev
+```shell
+apt install libpcap-dev
+```
 
 # example
 ```shell
@@ -35,3 +40,8 @@ fonts.googleapis.com A
 1695634014.739390
 fonts.googleapis.com AAAA
 ```
+
+# packet source
+a submodule to fetch packet samples, but only for my personal use.
+samples are captured on my own PC, or shared by my classmates.
+can not be public due to privacy issue.
