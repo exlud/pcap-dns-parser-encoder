@@ -1,13 +1,21 @@
-CC=gcc
+CC=g++
 LDFLAGS= -lpcap -lc
 
-all: parser
+SUBDIRS = protocol collector learner
 
-parser: parser.o cli.o
-	@${CC} -o $@ $? ${LDFLAGS}
+OBJS = build/dns.o build/collector.o build/learner.o
+
+.PHONY: ${SUBDIRS} 
+
+all: ${SUBDIRS}
+	-@${CC} ${OBJS} main.cpp -o demo ${LDFLAGS} 
+
+${SUBDIRS}:
+	-@$(MAKE) -C $@
 
 clean:
-	@-rm -f parser.o cli.o parser
+	@-rm -f build/*.o build/a.out 
+	@-rm -f demo 
 
-%.o: %.c
-	@${CC} -c $< -o $@
+test:
+	-@${MAKE} -C tests 
