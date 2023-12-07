@@ -1,7 +1,8 @@
 CC=gcc
+CPPFLAGS = -I ../header
 
 all: dns.o 
 
 dns.o:
-	@${CC} -o ../build/dns.o -c dns.c 
+	@${CC} $(CPPFLAGS) -o ../build/dns.o -c dns.c 
 

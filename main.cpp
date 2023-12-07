@@ -1,53 +1,53 @@
+#include <iostream>
 #include <string>
-#include <tuple>
+#include <utility>
 #include <stdio.h>
-#include <pcap/pcap.h>
-#include "protocol/dns.h"
-#include "collector/collector.h"
-#include "learner/learner.h"
+#include <algorithm>
+#include <filesystem>
+#include "stream.h"
+#include "streams.h"
+
+using std::map, std::vector, std::set, std::pair;
+using std::string;
+using std::cout, std::endl;
+using std::filesystem::directory_iterator;
 
 int main(int argc, char * argv[])
 {
-  dns::learner learner;
-
-  char err[PCAP_ERRBUF_SIZE];
-  const char * input = "./packet-samples/example.pcap";
-  pcap_t * pcap = pcap_open_offline(input, err);
-  if(pcap == NULL) {
-    fprintf(stderr, "Can not open file %s: %s\n", input, err);
-    return -1;
-  }
-
-  int msgnr = 0, qrynr = 0, respnr = 0;
-  char name[512] = {0};
-  int tid = -1;
-
-  const uint8_t *packet;
-  struct pcap_pkthdr hdr;
-  dns::collector collector;
-  while((packet = pcap_next(pcap, &hdr)) != NULL) {
-    struct question q;
-    if(dns_parse(packet, &q) == 0) {
-      if(q.query && q.type == DNS_TYPE_A) {
-        collector.collect(std::make_tuple(hdr.ts.tv_sec, q.tid, true, std::string(q.name)));
-      } else {
-        collector.collect(std::make_tuple(hdr.ts.tv_sec, q.tid, false, std::string("")));
-      }
+  vector<string> files;
+  string directory = "packet-samples/";
+  for(auto file : directory_iterator(directory)) {
+    if(file.path().extension() == ".pcap") {
+      files.push_back(file.path().c_str());
     }
   }
-
-  pcap_close(pcap);
-
-  collector.grouping(2);
-  collector.causing();
-  
-  for(auto m : collector._causals) {
-    learner.feed(m);
+  vector<std::shared_ptr<dns::stream>> streams;
+  for(auto file : files) {
+    auto stream = std::make_shared<dns::stream>(file);
+    string msg;
+    if(stream->load(msg) != 0) {
+      cout << "file: " << file << endl;
+      cout << "error: " << msg << endl;
+      continue;
+    }
+    streams.push_back(stream);
   }
-  for(auto m : collector._causals) {
-    learner.feed(m);
-  }
-  learner.summary(); 
+  cout << "streams: " << streams.size() << endl;
 
+
+  int volume = dns::streams::volume(streams);
+  cout << "volume: " << volume << endl;
+
+  auto space = dns::streams::space(streams);
+  cout << "space: " << space.size() << endl;
+
+  auto cdb = dns::streams::conditional(streams);
+  string host = argv[1];
+  double threshold = std::stod(argv[2]);
+  auto result = dns::streams::association(cdb, host, threshold);
+
+  for(auto m : result) {
+    cout << m << endl;
+  }
   return 0;
 }

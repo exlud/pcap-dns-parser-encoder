@@ -1,16 +1,17 @@
-CC=g++
-LDFLAGS= -lpcap -lc
+CC = g++
+LDFLAGS = -lpcap -lc
+CPPFLAGS = -I header
 
-SUBDIRS = protocol collector learner
+SUBDIRS = protocol src 
 
-OBJS = build/dns.o build/collector.o build/learner.o
+OBJS = build/dns.o build/stream.o build/streams.o
 
-.PHONY: ${SUBDIRS} 
+.PHONY: $(SUBDIRS) 
 
-all: ${SUBDIRS}
-	-@${CC} ${OBJS} main.cpp -o demo ${LDFLAGS} 
+all: $(SUBDIRS)
+	-@$(CC) $(OBJS) $(CPPFLAGS) main.cpp -o demo $(LDFLAGS) 
 
-${SUBDIRS}:
+$(SUBDIRS):
 	-@$(MAKE) -C $@
 
 clean:
@@ -18,4 +19,4 @@ clean:
 	@-rm -f demo 
 
 test:
-	-@${MAKE} -C tests 
+	-@$(MAKE) -C tests 
