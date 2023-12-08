@@ -44,10 +44,23 @@ int main(int argc, char * argv[])
   auto cdb = dns::streams::conditional(streams);
   string host = argv[1];
   double threshold = std::stod(argv[2]);
-  auto result = dns::streams::association(cdb, host, threshold);
-
-  for(auto m : result) {
-    cout << m << endl;
+  auto association = dns::streams::association(cdb, host, threshold);
+  if(association.empty()) {
+    return 0;
   }
+  cout << host << " associates to:" << endl; 
+  for(auto a : association) {
+    cout << "  " << a << endl;
+  }
+  association.insert(host);
+
+  string where;
+  string when;
+  auto pattern = dns::streams::hypothesis(streams, association, where, when, 2, 1000);
+  cout << "evidence found in " << where << " at " << when << endl;
+  for(auto m : pattern) {
+    cout << "  " << m << endl;
+  }
+
   return 0;
 }

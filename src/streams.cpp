@@ -138,6 +138,20 @@ vector<pair<string, int>> conditional_multi(const streams_t & ss, const set<stri
   return ret;
 }
 
+vector<string> hypothesis(const streams_t & ss, const set<string> association, string & where, string & when, int noise, int window)
+{
+  vector<string> longest;
+  for(auto s : ss) {
+    auto ret = s->sequence(association, when, noise, window);
+    if(ret.size() > longest.size()) {
+      longest = ret;
+      where = s->id();
+    }
+  }
+  return longest;
+}
+
+
 
 } //end namespace streams
 } //end namespace dns

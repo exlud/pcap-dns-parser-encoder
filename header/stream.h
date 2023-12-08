@@ -32,6 +32,13 @@ using std::chrono::seconds, std::chrono::microseconds, std::chrono::milliseconds
 typedef struct {
   milliseconds ts;
   string host;
+} dns_query_event_t;
+
+typedef struct {
+  milliseconds ts;
+  int tid;
+  bool query;
+  string host;
 } dns_event_t;
 
 class stream {
@@ -49,13 +56,15 @@ class stream {
     map<string, int> histro();
     bool contains(const set<string>);
     bool contains(const string);
+    vector<string> sequence(const set<string> association, string & when, int noise, int window);
     set<string> window(milliseconds start, milliseconds end) const;
-    vector<set<string>> adjacent(const string, int milli) const;
-    vector<set<string>> adjacent_forward(const string, int milli);
-    vector<set<string>> adjacent_backward(const string, int milli);
+    vector<set<string>> adjacent(const string, int window) const;
+    vector<set<string>> adjacent_forward(const string, int window);
+    vector<set<string>> adjacent_backward(const string, int window);
 
   private:
-    vector<dns_event_t> stream_;
+    vector<dns_query_event_t> stream_;
+    vector<dns_event_t> fullstream_;
     string file_;
 
   private:

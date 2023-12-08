@@ -1,7 +1,10 @@
 #include <algorithm>
+#include <iostream>
 #include <pcap/pcap.h>
 #include "stream.h"
 #include "dns.h"
+
+using std::remove_if;
 
 namespace dns {
 
@@ -21,10 +24,16 @@ stream::stream(const string file)
       while((packet = pcap_next(pcap, &hdr)) != NULL) {
         struct question q;
         if(dns_parse(packet, &q) == 0) {
-          if(q.query && q.type == DNS_TYPE_A) {
-            auto ts = seconds{hdr.ts.tv_sec} + microseconds{hdr.ts.tv_usec};
-            auto mts = std::chrono::duration_cast<milliseconds>(ts);
+          auto ts = seconds{hdr.ts.tv_sec} + microseconds{hdr.ts.tv_usec};
+          auto mts = std::chrono::duration_cast<milliseconds>(ts);
+          if(q.query) {
+	    if(q.type != DNS_TYPE_A) {
+	      continue;
+	    }
             stream_.push_back({mts, q.name});
+	    fullstream_.push_back({mts, q.tid, true, q.name});
+	  } else {
+	    fullstream_.push_back({mts, q.tid, false, ""});
 	  }
         }
       }
@@ -145,5 +154,103 @@ vector<set<string>> stream::adjacent_forward(const string host, int milli)
 }
 
 
+vector<string> stream::sequence(const set<string> association, string & when, int noise, int window)
+{
+  auto swindow = milliseconds(window + 200*(association.size() - 1));
+  vector<dns_event_t> filtered;
+  set<int> tids;
+  for(auto m : fullstream_) {
+    if(m.query) {
+      if(association.find(m.host) == association.end()) {
+        continue;
+      }
+      tids.insert(m.tid);
+    }
+    filtered.push_back(m);
+  }
+
+  for(auto it = filtered.begin(); it != filtered.end();) {
+    if(!it->query && tids.find(it->tid) == tids.end()) {
+      it = filtered.erase(it);
+    } else {
+      it++;
+    }
+  }
+  
+  // slice long sequence
+  // A    BCD     EAF    DXABC   A  C
+  // 
+  // to smaller sequences
+  //
+  // A
+  // BCD
+  // EAF
+  // DXABC
+  // A
+  // C
+  vector<vector<dns_event_t>> fragments;
+  vector<dns_event_t> fragment;
+  auto pts = filtered.begin()->ts;
+  for(auto m : filtered) {
+    if(m.ts - pts > swindow) {
+      if(!fragment.empty()) {
+        fragments.push_back(fragment);
+	fragment.clear();
+      }
+    }
+    fragment.push_back(m);
+    pts = m.ts;
+  }
+
+  fragments.erase(remove_if(fragments.begin(), fragments.end(),
+                            [](auto f) { 
+			       return (f.size() < 2) || (f[0].tid != f[1].tid);
+			    }),
+		  fragments.end());
+
+  for(auto & m : fragments) {
+    m.erase(remove_if(m.begin(), m.end(), [](auto d) {return !d.query;}), m.end());
+  }
+
+  fragments.erase(remove_if(fragments.begin(), fragments.end(),
+                            [association,noise](auto f) { 
+			        set<string> uniques;
+				for(auto e : f) {
+				  uniques.insert(e.host);
+				}
+				return (uniques.size() < (association.size() - noise));
+			    }), 
+		  fragments.end());
+
+  vector<string> longest;
+  for(auto m : fragments) {
+    set<string> uniques;
+    for(auto e : m) {
+      uniques.insert(e.host);
+    }
+    if(uniques.size() <= longest.size()) {
+      continue;
+    }
+    longest.clear();
+    auto ts = m.begin()->ts - fullstream_.begin()->ts;
+    auto secs = std::chrono::duration_cast<std::chrono::seconds>(ts);
+    auto us = std::chrono::duration_cast<std::chrono::microseconds>(ts - secs);
+    // c++20
+    //when = std::format("{}:{}", secs.count(), us.count());
+    string second = std::to_string(secs.count());
+    string usecond = std::to_string(us.count());
+    when = second + ":" + usecond;
+    for(auto e : m) {
+      if(uniques.find(e.host) != uniques.end()) {
+        longest.push_back(e.host);
+	uniques.erase(e.host);
+      }
+    }
+  }
+
+  return longest;
 }
+
+
+} // end namespace dns
 
