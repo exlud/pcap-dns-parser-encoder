@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <iostream>
 #include <pcap/pcap.h>
 #include "stream.h"
 #include "dns.h"
@@ -177,6 +176,9 @@ vector<string> stream::sequence(const set<string> association, string & when, in
     }
   }
   
+  if(filtered.empty()) {
+    return vector<string>();
+  }
   // slice long sequence
   // A    BCD     EAF    DXABC   A  C
   // 
@@ -222,6 +224,12 @@ vector<string> stream::sequence(const set<string> association, string & when, in
 			    }), 
 		  fragments.end());
 
+  fragments.erase(remove_if(fragments.begin(), fragments.end(),
+                            [](auto f) { 
+			       return f.empty();
+			    }),
+		  fragments.end());
+
   vector<string> longest;
   for(auto m : fragments) {
     set<string> uniques;
@@ -232,14 +240,14 @@ vector<string> stream::sequence(const set<string> association, string & when, in
       continue;
     }
     longest.clear();
-    auto ts = m.begin()->ts - fullstream_.begin()->ts;
+    auto ts = m.begin()->ts;
     auto secs = std::chrono::duration_cast<std::chrono::seconds>(ts);
-    auto us = std::chrono::duration_cast<std::chrono::microseconds>(ts - secs);
+    auto msecs = std::chrono::duration_cast<std::chrono::milliseconds>(ts - secs);
     // c++20
     //when = std::format("{}:{}", secs.count(), us.count());
     string second = std::to_string(secs.count());
-    string usecond = std::to_string(us.count());
-    when = second + ":" + usecond;
+    string msecond = std::to_string(msecs.count());
+    when = second + ":" + msecond;
     for(auto e : m) {
       if(uniques.find(e.host) != uniques.end()) {
         longest.push_back(e.host);

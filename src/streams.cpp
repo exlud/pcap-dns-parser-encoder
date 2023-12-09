@@ -142,10 +142,12 @@ vector<string> hypothesis(const streams_t & ss, const set<string> association, s
 {
   vector<string> longest;
   for(auto s : ss) {
-    auto ret = s->sequence(association, when, noise, window);
+    string fwhen;
+    auto ret = s->sequence(association, fwhen, noise, window);
     if(ret.size() > longest.size()) {
       longest = ret;
       where = s->id();
+      when = fwhen;
     }
   }
   return longest;
