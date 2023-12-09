@@ -1,6 +1,6 @@
 # pcap-dns-parser-encoder
-Parse offline pcap file, extract DNS query in a custom encode format
-Then use the post-process script to "decode", and extract timestamp for GNU octave
+Parse offline pcap file, extract DNS query, estimate conditional probability. 
+Then use the probability to explore the DNS sequence, which is the knowledge for prediction.
 
 # dependency
 libpcap-dev
@@ -8,40 +8,20 @@ libpcap-dev
 apt install libpcap-dev
 ```
 
-# example
+# use 
 ```shell
 make
-./parser -f sample.pcap -o dns.txt
-source post-process.sh dns.txt
+cp <your packets> packet-samples
+./demo > result.txt
 ```
-one fragment in the output file
-```code
-1695634014.531325
-www.google.com A
-
-1695634014.531335
-www.google.com AAAA
-
-1695634014.696850
-clients1.google.com A
-
-1695634014.696863
-clients1.google.com AAAA
-
-1695634014.737772
-lh3.googleusercontent.com A
-
-1695634014.737794
-lh3.googleusercontent.com AAAA
-
-1695634014.739364
-fonts.googleapis.com A
-
-1695634014.739390
-fonts.googleapis.com AAAA
+then you can get sequences like
+```shell
+  www.bing.com
+  r.bing.com
+  th.bing.com
+  login.microsoftonline.com
 ```
+which means `www.bing.com` as a DNS query, **maybe** sufficiently causes other queries.
 
 # packet source
-a submodule to fetch packet samples, but only for my personal use.
-samples are captured on my own PC, or shared by my classmates.
-can not be public due to privacy issue.
+a submodule to fetch packet samples, currently it uses private repo of mine, due to privacy issue.
