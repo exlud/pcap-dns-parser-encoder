@@ -28,6 +28,9 @@ vector<pair<string, int>> histro(const streams_t & ss, int threshold = 1);
 // given condition 'host', what occurrs in a time window
 // sorted pair
 vector<pair<string, int>> conditional(const streams_t & ss, const string host, int window = 1000);
+vector<pair<string, int>> conditional(const streams_t & ss, const string host, const string extra, int window = 1000);
+
+map<string, vector<pair<string, double>>> estimate(const map<string, vector<pair<string, int>>> condition, int space);
 
 // list the conditonal samples of hosts, whose occurrence is larger than threshold
 map<string, vector<pair<string, int>>> conditional(const streams_t & ss, int threshold = 10, int window = 1000);
@@ -42,10 +45,14 @@ map<string, vector<pair<string, int>>> conditional(const streams_t & ss, int thr
 //   100^3 observations for 3 variables
 vector<pair<string, int>> conditional_multi(const streams_t & ss, const set<string> hosts, int window = 1000);
 
+map<string, double> search_significant_correlation(const map<string, vector<pair<string, double>>> estimation, const string var, double threshold);
+map<string, double> recursive_search_significant_correlation(const map<string, vector<pair<string, double>>> estimation, const string var, double threshold, int depth);
 // helper function
 // filter variables has significant high conditional probability
 // either as dependent variable or independent variable
 set<string> association(const map<string, vector<pair<string, int>>> & cdb, const string host, double threshold = 0.7);
+
+void review(const streams_t &ss, const string host, const vector<string> association);
 
 const double alpha = 0.2;
 // given an association set, the hypothesis is that:

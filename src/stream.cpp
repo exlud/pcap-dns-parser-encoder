@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <pcap/pcap.h>
 #include "stream.h"
 #include "dns.h"
@@ -134,6 +135,38 @@ vector<set<string>> stream::adjacent(const string host, int milli) const
     if(m.host == host) {
       auto start = m.ts - milliseconds(milli);
       auto end = m.ts + milliseconds(milli);
+      adjacent.push_back(window(start, end));
+    } 
+  }
+  return adjacent;
+}
+
+void stream::review(const string host, const vector<string> association)
+{
+  std::cout << file_ << std::endl; 
+  auto adj = adjacent(host, 1000);
+  for(auto m: adj) {
+    int match = 0;
+    for(auto a: association) {
+      if(m.find(a) != m.end()) {
+        match++;
+      }
+    }
+    std::cout << match << std::endl;
+  }
+}
+
+vector<set<string>> stream::adjacent(const string host, const string extra, int milli) const
+{
+  vector<set<string>> adjacent;
+  for(auto m: stream_) {
+    if(m.host == host) {
+      auto start = m.ts - milliseconds(milli);
+      auto end = m.ts + milliseconds(milli);
+      auto w = window(start, end);
+      if(w.find(extra) == w.end()) {
+        continue;
+      }
       adjacent.push_back(window(start, end));
     } 
   }

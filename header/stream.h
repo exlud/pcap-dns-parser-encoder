@@ -56,9 +56,11 @@ class stream {
     map<string, int> histro();
     bool contains(const set<string>);
     bool contains(const string);
+    void review(const string host, const vector<string> association);
     vector<string> sequence(const set<string> association, string & when, int noise, int window);
     set<string> window(milliseconds start, milliseconds end) const;
     vector<set<string>> adjacent(const string, int window) const;
+    vector<set<string>> adjacent(const string, const string, int window) const;
     vector<set<string>> adjacent_forward(const string, int window);
     vector<set<string>> adjacent_backward(const string, int window);
 

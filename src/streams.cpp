@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iterator>
 #include "streams.h"
 
 namespace dns {
@@ -68,7 +69,49 @@ vector<pair<string, int>> conditional(const streams_t & ss, const string host, i
 
   for(auto s : ss) {
     auto one = s->adjacent(host, window); //search in one stream
-    std::move(one.begin(), one.end(), std::back_inserter(raw)); //merge streams
+    std::move(one.begin(), one.end(), std::back_inserter(raw)); //merge results
+  }
+
+  // statistic of neighbors
+  map<string, int> histro;
+  for(auto m : raw) {
+    for(auto e : m) {
+      histro[e]++;
+    }
+  }
+
+  // sort
+  int x = histro[host];
+  histro.erase(host);
+  for(auto m : histro) {
+    ret.push_back({m.first, m.second});
+  }
+  std::sort(ret.begin(), ret.end(), [] (auto l, auto r) {
+		  return l.second > r.second; 
+           });
+  ret.insert(ret.begin(), {host, x});
+
+  return ret;
+}
+
+void review(const streams_t & ss, const string host, const vector<string> association)
+{
+  for(auto s : ss) {
+    s->review(host, association);
+  }
+}
+
+vector<pair<string, int>> conditional(const streams_t & ss, const string host, const string extra, int window)
+{
+  vector<pair<string, int>> ret;
+
+  // element of the vector means:
+  // neighbors of the host, in one occurrence
+  vector<set<string>> raw;
+
+  for(auto s : ss) {
+    auto one = s->adjacent(host, extra, window); //search in one stream
+    std::move(one.begin(), one.end(), std::back_inserter(raw)); //merge results
   }
 
   // statistic of neighbors
@@ -100,6 +143,92 @@ map<string, vector<pair<string, int>>> conditional(const streams_t & ss, int thr
   auto h = histro(ss, threshold);
   for(auto e: h) {
     ret[e.first] = conditional(ss, e.first, window);
+  }
+
+  return ret;
+}
+
+map<string, vector<pair<string, double>>> estimate(const map<string, vector<pair<string, int>>> condition, int space)
+{
+  double a = 3 / space;
+
+  map<string, vector<pair<string, double>>> ret;
+  for(auto m : condition) {
+    auto host = m.first;
+    int total = m.second.begin()->second;
+    vector<pair<string, double>> estimation;
+    for(auto n : m.second) {
+      estimation.push_back({n.first, (n.second + a)/(total + 3)}); 
+    }
+
+    ret[host] = estimation;
+  }
+  
+  return ret;
+}
+
+static map<string, double> select_path(const vector<pair<string, double>> correlation)
+{
+  map<string, double> ret;
+  for(auto m : correlation) {
+    if(auto iter = ret.find(m.first);  iter != ret.end()) {
+      if(iter->second >= m.second) {
+        continue;
+      }
+    }
+    ret[m.first] = m.second;
+  }
+
+  return ret;
+}
+
+map<string, double> search_significant_correlation(const map<string, vector<pair<string, double>>> estimation, const string var, double threshold)
+{
+  vector<pair<string, double>> correlation;
+  for(auto e : estimation) {
+    if(e.first == var) {
+      for(auto c : e.second) {
+        if(c.first != var && c.second > threshold) {
+	  correlation.push_back({c.first, c.second});
+	}
+      }
+      continue;
+    }
+    auto condition = e.first;
+    for(auto c : e.second) {
+      if(c.first == var && c.second > threshold) {
+        correlation.push_back({condition, c.second});
+	break;
+      }
+    }
+  }
+
+
+  return select_path(correlation);
+}
+
+map<string, double> recursive_search_significant_correlation(const map<string, vector<pair<string, double>>> estimation, const string var, double threshold, int depth)
+{
+  map<string, double> ret;
+  ret = search_significant_correlation(estimation, var, threshold);
+  for(int i = 0; i< depth; i++) {
+    map<string, double> patches;
+    for(auto m : ret) {
+      if(m.second < threshold) {
+        continue;
+      }
+      auto patch = search_significant_correlation(estimation, m.first, threshold/m.second);
+      //auto patch = search_significant_correlation(estimation, m.first, threshold);
+      for(auto & p : patch) {
+        p.second *= m.second;
+      }
+      patches.merge(patch);
+    }
+
+    ret.merge(patches);
+    vector<pair<string, double>> temp;
+    std::transform(ret.begin(), ret.end(), std::back_inserter(temp), [](auto e){return e;});
+    ret = select_path(temp);
   }
 
   return ret;
