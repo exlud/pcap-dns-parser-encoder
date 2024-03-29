@@ -1,3 +1,4 @@
 [submodule "packet-samples"]
 	path = packet-samples
 	url = git@github.com:exlud/dns-packet-samples.git
+	branch = develop
